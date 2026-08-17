@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/DeskPin/DeskPin.csproj" />
+  <Project Path="tests/DeskPin.Tests/DeskPin.Tests.csproj" />
+  <Project Path="installer/DeskPin.Installer/DeskPin.Installer.wixproj" />
+</Solution>

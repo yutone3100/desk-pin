@@ -1,0 +1,16 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputName>DeskPin-x64</OutputName>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <SuppressIces>ICE91</SuppressIces>
+    <DeskPinPublishDir>$(MSBuildProjectDirectory)\..\..\artifacts\publish\</DeskPinPublishDir>
+    <DefineConstants>DeskPinPublishDir=$(DeskPinPublishDir)</DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="PublishDeskPin" BeforeTargets="CoreCompile">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\..\..\src\DeskPin\DeskPin.csproj"
+             Targets="Restore;Publish"
+             Properties="Configuration=Release;RuntimeIdentifier=win-x64;SelfContained=true;PublishDeskPinSingleFile=true;PublishDir=$(DeskPinPublishDir)" />
+  </Target>
+</Project>
