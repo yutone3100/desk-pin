@@ -131,6 +131,35 @@ public sealed class MainViewModelFilterTests
         Assert.Empty(viewModel.Windows);
     }
 
+    [Fact]
+    public async Task SuspendClearsWindowsAndDiscardsAnInFlightRefresh()
+    {
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var incoming = new DesktopWindow(99, "稍后返回的窗口", "late", 999, false, null);
+        using var manager = new FakeWindowManager([])
+        {
+            GetWindowsOverride = () =>
+            {
+                entered.Set();
+                release.Wait(TimeSpan.FromSeconds(5));
+                return [incoming];
+            },
+        };
+        var viewModel = new MainViewModel(manager);
+        viewModel.ReconcileWindows([new DesktopWindow(1, "现有窗口", "existing", 1, false, null)]);
+
+        var refresh = viewModel.RefreshAsync();
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        viewModel.Suspend();
+        release.Set();
+        await refresh;
+
+        Assert.Empty(viewModel.Windows);
+        await viewModel.RefreshAsync();
+        Assert.Equal(1, manager.GetWindowsCallCount);
+    }
+
     private sealed class FakeWindowManager(IReadOnlyList<DesktopWindow> windows) : IWindowManager
     {
         public IReadOnlyList<DesktopWindow> Windows { get; set; } = windows;

@@ -79,6 +79,7 @@ internal static class WindowShadowService
 
             _source = HwndSource.FromHwnd(_handle);
             _source?.AddHook(WindowMessageHook);
+            EnsureShadowCapableStyle();
             QueueRefresh();
         }
 
@@ -99,7 +100,9 @@ internal static class WindowShadowService
             IntPtr lParam,
             ref bool handled)
         {
-            if (message is NativeMethods.WmDwmCompositionChanged or NativeMethods.WmThemeChanged)
+            if (message is NativeMethods.WmDwmCompositionChanged or
+                NativeMethods.WmThemeChanged or
+                NativeMethods.WmStyleChanged)
             {
                 QueueRefresh();
             }
@@ -119,24 +122,38 @@ internal static class WindowShadowService
                 return;
             }
 
-            var renderingPolicy = NativeMethods.DwmNcRenderingEnabled;
-            if (NativeMethods.DwmSetWindowAttribute(
-                    _handle,
-                    NativeMethods.DwmwaNcRenderingPolicy,
-                    ref renderingPolicy,
-                    sizeof(int)) != 0)
-            {
-                return;
-            }
+            EnsureShadowCapableStyle();
 
-            var borderColor = NativeMethods.DwmColorNone;
-            if (NativeMethods.DwmSetWindowAttribute(
-                    _handle,
-                    NativeMethods.DwmwaBorderColor,
-                    ref borderColor,
-                    sizeof(int)) != 0)
+            var renderingPolicy = NativeMethods.DwmNcRenderingEnabled;
+            NativeMethods.DwmSetWindowAttribute(
+                _handle,
+                NativeMethods.DwmwaNcRenderingPolicy,
+                ref renderingPolicy,
+                sizeof(int));
+
+            var cornerPreference = NativeMethods.DwmWindowCornerPreferenceRound;
+            NativeMethods.DwmSetWindowAttribute(
+                _handle,
+                NativeMethods.DwmwaWindowCornerPreference,
+                ref cornerPreference,
+                sizeof(int));
+
+            var borderColor = NativeMethods.DwmColorDefault;
+            NativeMethods.DwmSetWindowAttribute(
+                _handle,
+                NativeMethods.DwmwaBorderColor,
+                ref borderColor,
+                sizeof(int));
+
+            var margins = new NativeMethods.Margins
             {
-                RemoveExtendedFrame();
+                LeftWidth = 1,
+                RightWidth = 1,
+                TopHeight = 1,
+                BottomHeight = 1,
+            };
+            if (NativeMethods.DwmExtendFrameIntoClientArea(_handle, ref margins) != 0)
+            {
                 return;
             }
 
@@ -152,28 +169,20 @@ internal static class WindowShadowService
                 NativeMethods.SwpNoZOrder |
                 NativeMethods.SwpNoActivate |
                 NativeMethods.SwpFrameChanged);
-
-            var margins = new NativeMethods.Margins
-            {
-                LeftWidth = 1,
-                RightWidth = 1,
-                TopHeight = 1,
-                BottomHeight = 1,
-            };
-            NativeMethods.DwmExtendFrameIntoClientArea(_handle, ref margins);
-
-            borderColor = NativeMethods.DwmColorNone;
-            NativeMethods.DwmSetWindowAttribute(
-                _handle,
-                NativeMethods.DwmwaBorderColor,
-                ref borderColor,
-                sizeof(int));
         }
 
-        private void RemoveExtendedFrame()
+        private void EnsureShadowCapableStyle()
         {
-            var margins = new NativeMethods.Margins();
-            NativeMethods.DwmExtendFrameIntoClientArea(_handle, ref margins);
+            var style = NativeMethods.GetWindowLongPtr(_handle, NativeMethods.GwlStyle).ToInt64();
+            if ((style & NativeMethods.WsThickFrame) != 0)
+            {
+                return;
+            }
+
+            NativeMethods.SetWindowLongPtr(
+                _handle,
+                NativeMethods.GwlStyle,
+                new IntPtr(style | NativeMethods.WsThickFrame));
         }
 
         private void OnClosed(object? sender, EventArgs e)

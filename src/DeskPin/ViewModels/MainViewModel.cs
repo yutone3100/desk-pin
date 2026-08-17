@@ -22,6 +22,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _viewPreferenceError = string.Empty;
     private string _refreshError = string.Empty;
     private int _operating;
+    private int _refreshGeneration;
+    private volatile bool _isActive = true;
 
     public MainViewModel(IWindowManager windowManager, WindowViewMode initialViewMode = WindowViewMode.Cards)
     {
@@ -150,21 +152,43 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         lock (_refreshSync)
         {
-            if (!_currentRefresh.IsCompleted)
+            if (!_isActive || !_currentRefresh.IsCompleted)
             {
                 return Task.CompletedTask;
             }
 
-            _currentRefresh = RefreshCoreAsync();
+            _currentRefresh = RefreshCoreAsync(Volatile.Read(ref _refreshGeneration));
             return _currentRefresh;
         }
     }
 
-    private async Task RefreshCoreAsync()
+    internal void Resume()
+    {
+        Interlocked.Increment(ref _refreshGeneration);
+        _isActive = true;
+    }
+
+    internal void Suspend()
+    {
+        _isActive = false;
+        Interlocked.Increment(ref _refreshGeneration);
+        Windows.Clear();
+        WindowsView.Refresh();
+        UpdateStatusCount();
+        (_windowManager as Win32WindowManager)?.ClearEnumerationCache();
+    }
+
+    private async Task RefreshCoreAsync(int generation)
     {
         try
         {
             var windows = await Task.Run(_windowManager.GetWindows);
+            if (!_isActive || generation != Volatile.Read(ref _refreshGeneration))
+            {
+                (_windowManager as Win32WindowManager)?.ClearEnumerationCache();
+                return;
+            }
+
             ReconcileWindows(windows);
             UpdateStatusCount();
             RefreshError = string.Empty;

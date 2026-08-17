@@ -7,7 +7,7 @@ if "%CONFIGURATION%"=="" set "CONFIGURATION=Release"
 dotnet test "%~dp0tests\DeskPin.Tests\DeskPin.Tests.csproj" -c "%CONFIGURATION%" --nologo
 if errorlevel 1 exit /b %errorlevel%
 
-dotnet build "%~dp0installer\DeskPin.Installer\DeskPin.Installer.wixproj" -c "%CONFIGURATION%" --nologo
+dotnet build "%~dp0installer\DeskPin.Installer\DeskPin.Installer.wixproj" -c "%CONFIGURATION%" -t:Rebuild --nologo
 if errorlevel 1 exit /b %errorlevel%
 
 set "MSI_PATH=%~dp0installer\DeskPin.Installer\bin\x64\%CONFIGURATION%\zh-CN\DeskPin-x64.msi"

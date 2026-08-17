@@ -13,7 +13,7 @@
         <shell:WindowChrome CaptionHeight="42"
                             ResizeBorderThickness="0"
                             CornerRadius="11"
-                            GlassFrameThickness="0"
+                            GlassFrameThickness="0.00001"
                             UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
 

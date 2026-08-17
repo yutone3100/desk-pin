@@ -16,7 +16,7 @@
         <shell:WindowChrome CaptionHeight="42"
                             ResizeBorderThickness="6"
                             CornerRadius="11"
-                            GlassFrameThickness="0"
+                            GlassFrameThickness="0.00001"
                             UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
 
@@ -198,8 +198,7 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
-    </Window.Resources>
-
+        <DataTemplate x:Key="MainContentTemplate">
     <Border x:Name="WindowFrame"
             Background="{DynamicResource ContentBackgroundBrush}"
             BorderThickness="0"
@@ -461,10 +460,12 @@
                     </StackPanel>
 
                     <Grid Grid.Row="2">
+                        <ContentControl Content="{Binding}">
+                            <ContentControl.Resources>
+                                <DataTemplate x:Key="CardViewTemplate">
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled"
-                                      Visibility="{Binding IsCardView, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <ItemsControl ItemsSource="{Binding WindowsView}" Margin="-8">
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="CardWindowList" ItemsSource="{Binding WindowsView}" Margin="-8">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <WrapPanel Orientation="Horizontal" />
@@ -547,12 +548,13 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
+                                </DataTemplate>
 
+                                <DataTemplate x:Key="ListViewTemplate">
                         <Border Background="{DynamicResource CardBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="10"
-                                Visibility="{Binding IsListView, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                CornerRadius="10">
                             <ListView x:Name="WindowList"
                                       ItemsSource="{Binding WindowsView}"
                                       BorderThickness="0"
@@ -656,6 +658,19 @@
                                 </ListView.View>
                             </ListView>
                         </Border>
+                                </DataTemplate>
+                            </ContentControl.Resources>
+                            <ContentControl.Style>
+                                <Style TargetType="ContentControl">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource CardViewTemplate}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsListView}" Value="True">
+                                            <Setter Property="ContentTemplate" Value="{StaticResource ListViewTemplate}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentControl.Style>
+                        </ContentControl>
 
                         <Grid Panel.ZIndex="5" IsHitTestVisible="False">
                             <Grid.Style>
@@ -684,4 +699,8 @@
             </Grid>
         </Grid>
     </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <ContentControl x:Name="MainContentHost" />
 </Window>

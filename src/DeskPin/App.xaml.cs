@@ -34,6 +34,31 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (ElevatedRestartService.TryGetParentProcessId(e.Args, out var parentProcessId))
+        {
+            if (!ProcessElevationService.IsCurrentProcessElevated())
+            {
+                System.Windows.MessageBox.Show(
+                    "管理员重启未获得提升权限，当前实例将退出。",
+                    "DeskPin",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                Shutdown();
+                return;
+            }
+
+            if (!ElevatedRestartService.WaitForParentExit(parentProcessId, TimeSpan.FromSeconds(10)))
+            {
+                System.Windows.MessageBox.Show(
+                    "等待原 DeskPin 实例退出超时，未启动第二个实例。",
+                    "DeskPin",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                Shutdown();
+                return;
+            }
+        }
+
         _singleInstance = new SingleInstanceCoordinator();
         if (!_singleInstance.TryBecomePrimary())
         {
@@ -44,7 +69,10 @@ public partial class App : System.Windows.Application
         _singleInstance.ActivationRequested += (_, _) => Dispatcher.BeginInvoke(ShowMainWindow);
         _singleInstance.ExitRequested += (_, _) => Dispatcher.BeginInvoke(RequestExit);
         _themeService = new ThemeService();
-        _windowManager = new Win32WindowManager();
+        var windowManager = new Win32WindowManager();
+        windowManager.MaintenanceFailed += (_, args) => Dispatcher.BeginInvoke(
+            () => ShowTrayMessage("置顶维护已暂停", $"{args.Title}\n{args.Message}", TrayNotificationKind.Warning));
+        _windowManager = windowManager;
         _settings = await _settingsStore.LoadAsync();
         _settings.StartWithWindows = _startupManager.IsEnabled();
 
@@ -52,6 +80,7 @@ public partial class App : System.Windows.Application
         _mainWindow = new MainWindow(
             _windowManager,
             ShowSettingsWindow,
+            PromptElevatedRestart,
             _settings.PreferredViewMode,
             SaveViewPreferenceAsync)
         {
@@ -71,7 +100,7 @@ public partial class App : System.Windows.Application
         CreateTrayIcon();
         if (e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase))
         {
-            _mainWindow.Hide();
+            _mainWindow.EnterBackgroundMode();
         }
         else
         {
@@ -189,6 +218,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        _mainWindow.ActivateContent();
         _mainWindow.Show();
         if (_mainWindow.WindowState == WindowState.Minimized)
         {
@@ -250,6 +280,13 @@ public partial class App : System.Windows.Application
         }
 
         var result = _windowManager.ToggleLastEligibleWindow();
+        if (!result.Succeeded && result.Error == WindowOperationError.AccessDenied)
+        {
+            ShowMainWindow();
+            PromptElevatedRestart();
+            return;
+        }
+
         ShowTrayMessage(
             result.Succeeded ? "DeskPin" : "操作失败",
             result.Message,
@@ -260,5 +297,42 @@ public partial class App : System.Windows.Application
     private void ShowTrayMessage(string title, string message, TrayNotificationKind icon)
     {
         _trayIcon?.ShowMessage(title, message, icon);
+    }
+
+    private void PromptElevatedRestart()
+    {
+        if (_isExiting)
+        {
+            return;
+        }
+
+        var choice = System.Windows.MessageBox.Show(
+            _mainWindow,
+            "目标程序正以管理员身份运行。是否以管理员身份重新启动 DeskPin？\n\n" +
+            "重启前会按现有规则恢复由 DeskPin 添加的置顶状态；重启后请重新选择需要置顶的窗口。",
+            "需要管理员权限",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (choice != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        var result = ElevatedRestartService.Start();
+        if (result.Started)
+        {
+            RequestExit();
+            return;
+        }
+
+        if (!result.Cancelled)
+        {
+            System.Windows.MessageBox.Show(
+                _mainWindow,
+                result.Message,
+                "DeskPin",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 }

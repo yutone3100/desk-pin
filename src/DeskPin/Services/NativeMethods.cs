@@ -71,7 +71,9 @@ internal static class NativeMethods
         internal IntPtr BalloonIcon;
     }
 
+    internal const int GwlStyle = -16;
     internal const int GwlExStyle = -20;
+    internal const long WsThickFrame = 0x00040000L;
     internal const long WsExTopmost = 0x00000008L;
     internal const long WsExToolWindow = 0x00000080L;
     internal const long WsExAppWindow = 0x00040000L;
@@ -84,17 +86,30 @@ internal static class NativeMethods
     internal const uint SwpNoSendChanging = 0x0400;
 
     internal const uint EventSystemForeground = 0x0003;
+    internal const uint EventSystemMinimizeEnd = 0x0017;
+    internal const uint EventObjectDestroy = 0x8001;
+    internal const uint EventObjectShow = 0x8002;
+    internal const uint EventObjectFocus = 0x8005;
     internal const uint WineventOutOfContext = 0x0000;
     internal const uint WineventSkipOwnProcess = 0x0002;
+    internal const int ObjidWindow = 0;
+    internal const int ChildidSelf = 0;
+
+    internal const uint ProcessQueryLimitedInformation = 0x1000;
+    internal const uint TokenQuery = 0x0008;
+    internal const int TokenElevationInformation = 20;
 
     internal const uint DwmwaCloaked = 14;
     internal const uint DwmwaNcRenderingPolicy = 2;
+    internal const uint DwmwaWindowCornerPreference = 33;
     internal const uint DwmwaBorderColor = 34;
     internal const int DwmNcRenderingEnabled = 2;
-    internal const int DwmColorNone = -2;
+    internal const int DwmWindowCornerPreferenceRound = 2;
+    internal const int DwmColorDefault = -1;
     internal const int WmGetMinMaxInfo = 0x0024;
     internal const uint WmNull = 0x0000;
     internal const int WmContextMenu = 0x007B;
+    internal const int WmStyleChanged = 0x007D;
     internal const int WmLeftButtonDoubleClick = 0x0203;
     internal const int WmRightButtonUp = 0x0205;
     internal const int WmThemeChanged = 0x031A;
@@ -166,6 +181,9 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     internal static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    internal static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newValue);
 
     [DllImport("user32.dll")]
     internal static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
@@ -305,4 +323,37 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool DestroyIcon(IntPtr hIcon);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern IntPtr OpenProcess(uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, int processId);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetTokenInformation(
+        IntPtr tokenHandle,
+        int tokenInformationClass,
+        out TokenElevation tokenInformation,
+        int tokenInformationLength,
+        out int returnLength);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll")]
+    internal static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool K32EmptyWorkingSet(IntPtr processHandle);
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct TokenElevation
+    {
+        internal int IsElevated;
+    }
 }

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Interop;
 using System.Windows.Shell;
 using DeskPin.Models;
 using DeskPin.Services;
@@ -34,8 +35,18 @@ public sealed class WindowSmokeTests
                 mainWindow = new MainWindow(
                     manager,
                     () => { },
+                    () => { },
                     WindowViewMode.Cards,
                     _ => Task.FromResult(SettingsApplyResult.Success()));
+                _ = new WindowInteropHelper(mainWindow).EnsureHandle();
+                Assert.False(mainWindow.IsContentActive);
+                Assert.False(mainWindow.IsRefreshTimerEnabled);
+                Assert.Null(mainWindow.FindContentElement<WpfTextBox>("SearchBox"));
+                Assert.Equal(0, manager.GetWindowsCallCount);
+                mainWindow.EnterBackgroundMode();
+                Assert.True(mainWindow.IsMemoryReclamationScheduled);
+                mainWindow.ActivateContent();
+                Assert.False(mainWindow.IsMemoryReclamationScheduled);
                 mainWindow.Show();
                 settingsWindow.Owner = mainWindow;
                 settingsWindow.Show();
@@ -44,18 +55,27 @@ public sealed class WindowSmokeTests
 
                 Assert.True(mainWindow.ActualWidth >= mainWindow.MinWidth);
                 Assert.True(settingsWindow.ActualWidth > 0);
-                Assert.Equal(new Thickness(0), WindowChrome.GetWindowChrome(mainWindow)?.GlassFrameThickness);
-                Assert.Equal(new Thickness(0), WindowChrome.GetWindowChrome(settingsWindow)?.GlassFrameThickness);
+                Assert.True(WindowChrome.GetWindowChrome(mainWindow)?.GlassFrameThickness.Left > 0);
+                Assert.True(WindowChrome.GetWindowChrome(settingsWindow)?.GlassFrameThickness.Left > 0);
                 Assert.False(mainWindow.AllowsTransparency);
                 Assert.False(settingsWindow.AllowsTransparency);
                 Assert.True(WindowShadowService.IsAttached(mainWindow));
                 Assert.True(WindowShadowService.IsAttached(settingsWindow));
-                var searchBox = Assert.IsType<WpfTextBox>(mainWindow.FindName("SearchBox"));
+                Assert.True(HasShadowCapableFrame(mainWindow));
+                Assert.True(HasShadowCapableFrame(settingsWindow));
+                var searchBox = Assert.IsType<WpfTextBox>(mainWindow.FindContentElement<WpfTextBox>("SearchBox"));
                 Assert.Equal(TextAlignment.Left, searchBox.TextAlignment);
-                var windowList = Assert.IsType<WpfListView>(mainWindow.FindName("WindowList"));
+                Assert.NotNull(mainWindow.FindContentElement<System.Windows.Controls.ItemsControl>("CardWindowList"));
+                Assert.Null(mainWindow.FindContentElement<WpfListView>("WindowList"));
+                Assert.Null(mainWindow.FindContentElement<System.Windows.Controls.Button>("RefreshButton"));
+
+                var viewModel = Assert.IsType<DeskPin.ViewModels.MainViewModel>(mainWindow.DataContext);
+                Assert.True(viewModel.SetViewMode(WindowViewMode.List));
+                mainWindow.UpdateLayout();
+                Assert.Null(mainWindow.FindContentElement<System.Windows.Controls.ItemsControl>("CardWindowList"));
+                var windowList = Assert.IsType<WpfListView>(mainWindow.FindContentElement<WpfListView>("WindowList"));
                 var gridView = Assert.IsType<WpfGridView>(windowList.View);
                 Assert.DoesNotContain(gridView.Columns, column => Equals(column.Header, "PID"));
-                Assert.Null(mainWindow.FindName("RefreshButton"));
 
                 var contextMenu = Assert.IsType<WpfContextMenu>(mainWindow.Resources["WindowContextMenu"]);
                 Assert.False(contextMenu.HasDropShadow);
@@ -86,6 +106,29 @@ public sealed class WindowSmokeTests
                 Assert.Equal(initialWidth, track.ActualWidth);
                 Assert.Equal(initialPosition, track.TranslatePoint(new System.Windows.Point(), settingsWindow));
                 Assert.Null(startupSwitch.FocusVisualStyle);
+
+                settingsWindow.Close();
+                settingsWindow = null;
+                mainWindow.Close();
+                Assert.False(mainWindow.IsVisible);
+                Assert.False(mainWindow.IsContentActive);
+                Assert.False(mainWindow.IsRefreshTimerEnabled);
+                Assert.Null(mainWindow.FindContentElement<WpfTextBox>("SearchBox"));
+                Assert.Empty(Assert.IsType<DeskPin.ViewModels.MainViewModel>(mainWindow.DataContext).Windows);
+
+                for (var cycle = 0; cycle < 20; cycle++)
+                {
+                    mainWindow.ActivateContent();
+                    mainWindow.Show();
+                    mainWindow.UpdateLayout();
+                    Assert.True(mainWindow.IsContentActive);
+                    Assert.True(mainWindow.IsRefreshTimerEnabled);
+                    Assert.NotNull(mainWindow.FindContentElement<WpfTextBox>("SearchBox"));
+                    mainWindow.Close();
+                    Assert.False(mainWindow.IsContentActive);
+                    Assert.False(mainWindow.IsRefreshTimerEnabled);
+                    Assert.Null(mainWindow.FindContentElement<WpfTextBox>("SearchBox"));
+                }
                 completion.TrySetResult();
             }
             catch (Exception exception)
@@ -112,12 +155,17 @@ public sealed class WindowSmokeTests
 
     private sealed class FakeWindowManager : IWindowManager
     {
+        public int GetWindowsCallCount { get; private set; }
         public long? LastEligibleWindowId => null;
 
-        public IReadOnlyList<DesktopWindow> GetWindows() =>
-        [
-            new DesktopWindow(1, "季度报告 - 记事本", "notepad", 1234, false, null),
-        ];
+        public IReadOnlyList<DesktopWindow> GetWindows()
+        {
+            GetWindowsCallCount++;
+            return
+            [
+                new DesktopWindow(1, "季度报告 - 记事本", "notepad", 1234, false, null),
+            ];
+        }
 
         public WindowOperationResult ToggleTopmost(long windowId) => WindowOperationResult.Success(true);
         public WindowOperationResult ToggleLastEligibleWindow() => WindowOperationResult.Success(true);
@@ -145,4 +193,12 @@ public sealed class WindowSmokeTests
             }
         }
     }
+
+    private static bool HasShadowCapableFrame(Window window)
+    {
+        var handle = new WindowInteropHelper(window).Handle;
+        var style = NativeMethods.GetWindowLongPtr(handle, NativeMethods.GwlStyle).ToInt64();
+        return (style & NativeMethods.WsThickFrame) != 0;
+    }
+
 }
