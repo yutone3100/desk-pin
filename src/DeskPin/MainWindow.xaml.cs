@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         _saveViewPreference = saveViewPreference;
         _viewModel = new MainViewModel(windowManager, initialViewMode);
         DataContext = _viewModel;
+        WindowShadowService.Attach(this);
         _refreshTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(1500), DispatcherPriority.Background, OnRefreshTimer, Dispatcher);
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;

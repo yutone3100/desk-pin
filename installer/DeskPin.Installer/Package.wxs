@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="DeskPin"
            Manufacturer="DeskPin"
            Version="1.0.0"
+           Language="2052"
            UpgradeCode="8E4278A5-5014-49CF-9E85-2C3A38B01D77"
            Scope="perUser"
            InstallerVersion="500"
@@ -10,6 +12,18 @@
     <SummaryInformation Description="DeskPin 窗口置顶助手（未签名）" />
     <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 DeskPin。" />
     <MediaTemplate EmbedCab="yes" />
+
+    <ui:WixUI Id="WixUI_InstallDir"
+              InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)License.rtf" />
+
+    <Property Id="INSTALLFOLDER" Secure="yes">
+      <RegistrySearch Id="RememberDeskPinInstallFolder"
+                      Root="HKCU"
+                      Key="Software\DeskPin"
+                      Name="InstallLocation"
+                      Type="raw" />
+    </Property>
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="LocalProgramsFolder" Name="Programs">
@@ -23,6 +37,11 @@
                            Type="integer"
                            Value="1"
                            KeyPath="yes" />
+            <RegistryValue Root="HKCU"
+                           Key="Software\DeskPin"
+                           Name="InstallLocation"
+                           Type="string"
+                           Value="[INSTALLFOLDER]" />
             <RemoveFolder Id="RemoveDeskPinInstallFolder"
                           Directory="INSTALLFOLDER"
                           On="uninstall" />

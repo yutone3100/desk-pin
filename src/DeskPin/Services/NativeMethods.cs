@@ -33,6 +33,44 @@ internal static class NativeMethods
         internal uint Flags;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct Margins
+    {
+        internal int LeftWidth;
+        internal int RightWidth;
+        internal int TopHeight;
+        internal int BottomHeight;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct NotifyIconData
+    {
+        internal uint Size;
+        internal IntPtr WindowHandle;
+        internal uint Id;
+        internal uint Flags;
+        internal uint CallbackMessage;
+        internal IntPtr IconHandle;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NotifyIconToolTipLength)]
+        internal string ToolTip;
+
+        internal uint State;
+        internal uint StateMask;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NotifyIconInfoLength)]
+        internal string Info;
+
+        internal uint TimeoutOrVersion;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = NotifyIconInfoTitleLength)]
+        internal string InfoTitle;
+
+        internal uint InfoFlags;
+        internal Guid ItemGuid;
+        internal IntPtr BalloonIcon;
+    }
+
     internal const int GwlExStyle = -20;
     internal const long WsExTopmost = 0x00000008L;
     internal const long WsExToolWindow = 0x00000080L;
@@ -50,14 +88,47 @@ internal static class NativeMethods
     internal const uint WineventSkipOwnProcess = 0x0002;
 
     internal const uint DwmwaCloaked = 14;
+    internal const uint DwmwaNcRenderingPolicy = 2;
+    internal const uint DwmwaBorderColor = 34;
+    internal const int DwmNcRenderingEnabled = 2;
+    internal const int DwmColorNone = -2;
     internal const int WmGetMinMaxInfo = 0x0024;
+    internal const uint WmNull = 0x0000;
+    internal const int WmContextMenu = 0x007B;
+    internal const int WmLeftButtonDoubleClick = 0x0203;
+    internal const int WmRightButtonUp = 0x0205;
+    internal const int WmThemeChanged = 0x031A;
+    internal const int WmDwmCompositionChanged = 0x031E;
     internal const uint WmClose = 0x0010;
     internal const int WmHotkey = 0x0312;
+    internal const int WmDeskPinTrayIcon = 0x8001;
     internal const int SwShow = 5;
     internal const int SwMinimize = 6;
     internal const int SwRestore = 9;
     internal const uint ModNoRepeat = 0x4000;
     internal const uint MonitorDefaultToNearest = 0x00000002;
+    internal const int IdiApplication = 32512;
+
+    internal const uint NimAdd = 0x00000000;
+    internal const uint NimModify = 0x00000001;
+    internal const uint NimDelete = 0x00000002;
+    internal const uint NimSetVersion = 0x00000004;
+    internal const uint NifMessage = 0x00000001;
+    internal const uint NifIcon = 0x00000002;
+    internal const uint NifTip = 0x00000004;
+    internal const uint NifInfo = 0x00000010;
+    internal const uint NifShowTip = 0x00000080;
+    internal const uint NiifInfo = 0x00000001;
+    internal const uint NiifWarning = 0x00000002;
+    internal const uint NotifyIconVersion4 = 4;
+    internal const int NotifyIconToolTipLength = 128;
+    internal const int NotifyIconInfoLength = 256;
+    internal const int NotifyIconInfoTitleLength = 64;
+
+    internal const uint MfString = 0x00000000;
+    internal const uint MfSeparator = 0x00000800;
+    internal const uint TpmRightButton = 0x0002;
+    internal const uint TpmReturnCommand = 0x0100;
 
     internal static readonly IntPtr HwndTopmost = new(-1);
     internal static readonly IntPtr HwndNoTopmost = new(-2);
@@ -168,6 +239,12 @@ internal static class NativeMethods
         ref int value,
         int valueSize);
 
+    [DllImport("dwmapi.dll")]
+    internal static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref Margins margins);
+
+    [DllImport("dwmapi.dll")]
+    internal static extern int DwmIsCompositionEnabled([MarshalAs(UnmanagedType.Bool)] out bool enabled);
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint virtualKey);
@@ -181,6 +258,49 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", EntryPoint = "GetClassLongPtrW")]
     internal static extern IntPtr GetClassLongPtr(IntPtr hWnd, int index);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "ExtractIconExW")]
+    internal static extern uint ExtractIconEx(
+        string fileName,
+        int iconIndex,
+        out IntPtr largeIcon,
+        out IntPtr smallIcon,
+        uint iconCount);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "Shell_NotifyIconW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ShellNotifyIcon(uint message, ref NotifyIconData data);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "LoadIconW")]
+    internal static extern IntPtr LoadIcon(IntPtr instance, IntPtr iconName);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "RegisterWindowMessageW")]
+    internal static extern uint RegisterWindowMessage(string messageName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern IntPtr CreatePopupMenu();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "AppendMenuW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool AppendMenu(IntPtr menu, uint flags, uint itemId, string? text);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern int TrackPopupMenu(
+        IntPtr menu,
+        uint flags,
+        int x,
+        int y,
+        int reserved,
+        IntPtr window,
+        IntPtr rectangle);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool DestroyMenu(IntPtr menu);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetCursorPos(out NativePoint point);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

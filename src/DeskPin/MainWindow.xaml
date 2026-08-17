@@ -25,7 +25,7 @@
             <Setter Property="Height" Value="38" />
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource ContextMenuTextBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -43,10 +43,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="MenuItemBorder" Property="Background" Value="{DynamicResource SidebarHoverBrush}" />
+                                <Setter TargetName="MenuItemBorder" Property="Background" Value="{DynamicResource ContextMenuHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="MenuItemBorder" Property="Background" Value="{DynamicResource SidebarHoverBrush}" />
+                                <Setter TargetName="MenuItemBorder" Property="Background" Value="{DynamicResource ContextMenuHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="MenuItemBorder" Property="Opacity" Value="0.45" />
@@ -63,7 +63,7 @@
                     <ControlTemplate TargetType="Separator">
                         <Border Height="1"
                                 Margin="12,2"
-                                Background="{DynamicResource BorderBrush}" />
+                                Background="{DynamicResource ContextMenuSeparatorBrush}" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -73,8 +73,8 @@
                      x:Shared="False"
                      Width="150"
                      Padding="4"
-                     Background="{DynamicResource SidebarBrush}"
-                     Foreground="White"
+                     Background="{DynamicResource ContextMenuBackgroundBrush}"
+                     Foreground="{DynamicResource ContextMenuTextBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
                      HasDropShadow="False"

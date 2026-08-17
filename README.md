@@ -27,11 +27,13 @@ dotnet test .\tests\DeskPin.Tests\DeskPin.Tests.csproj
 .\build.cmd
 ```
 
-WiX 5.0.2 通过项目 SDK 自动还原，不要求全局安装，也不要求接受 WiX 7 的 OSMF EULA。构建会发布自包含的 `win-x64` 单文件应用，并生成当前用户范围的 MSI。默认输出：
+WiX 5.0.2 通过项目 SDK 自动还原，不要求全局安装，也不要求接受 WiX 7 的 OSMF EULA。构建会发布自包含的 `win-x64` 单文件应用，并生成当前用户范围的中文 MSI。安装向导默认安装到 `%LocalAppData%\Programs\DeskPin`，也可以选择其他当前用户可写的本地目录。默认输出：
 
 ```text
-installer\DeskPin.Installer\bin\Release\DeskPin-x64.msi
+installer\DeskPin.Installer\bin\x64\Release\DeskPin-x64.msi
 ```
+
+正式发布启用自包含单文件压缩，仅携带简体中文卫星资源，并使用原生 Win32 托盘实现以避免引入 WinForms 运行时。构建脚本会显示 EXE/MSI 的实际字节数，并在 EXE 超过 60 MiB 或 MSI 超过 55 MiB 时失败。使用 .NET SDK 10.0.301 的当前验证结果为：EXE 58.79 MiB，MSI 52.78 MiB。
 
 MSI 和应用未进行代码签名，公开分发前应使用可信证书签名。
 

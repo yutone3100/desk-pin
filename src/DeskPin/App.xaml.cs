@@ -1,11 +1,8 @@
-using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using DeskPin.Models;
 using DeskPin.Services;
-using DeskPin.Utilities;
-using Forms = System.Windows.Forms;
 
 namespace DeskPin;
 
@@ -19,8 +16,8 @@ public partial class App : System.Windows.Application
     private IHotkeyService? _hotkeyService;
     private ThemeService? _themeService;
     private MainWindow? _mainWindow;
-    private Forms.NotifyIcon? _trayIcon;
-    private Icon? _applicationIcon;
+    private TrayIconService? _trayIcon;
+    private SafeIconHandle? _applicationIcon;
     private AppSettings _settings = new();
     private bool _isExiting;
 
@@ -51,14 +48,14 @@ public partial class App : System.Windows.Application
         _settings = await _settingsStore.LoadAsync();
         _settings.StartWithWindows = _startupManager.IsEnabled();
 
-        _applicationIcon = AppIconFactory.CreateIcon();
+        _applicationIcon = AppIconService.LoadIcon();
         _mainWindow = new MainWindow(
             _windowManager,
             ShowSettingsWindow,
             _settings.PreferredViewMode,
             SaveViewPreferenceAsync)
         {
-            Icon = AppIconFactory.ToImageSource(_applicationIcon),
+            Icon = AppIconService.ToImageSource(_applicationIcon),
         };
         MainWindow = _mainWindow;
         var handle = new WindowInteropHelper(_mainWindow).EnsureHandle();
@@ -83,7 +80,7 @@ public partial class App : System.Windows.Application
 
         if (!string.IsNullOrWhiteSpace(hotkeyError))
         {
-            ShowTrayMessage("快捷键注册失败", hotkeyError, Forms.ToolTipIcon.Warning);
+            ShowTrayMessage("快捷键注册失败", hotkeyError, TrayNotificationKind.Warning);
         }
     }
 
@@ -170,21 +167,19 @@ public partial class App : System.Windows.Application
 
     private void CreateTrayIcon()
     {
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("打开 DeskPin", null, (_, _) => Dispatcher.BeginInvoke(ShowMainWindow));
-        menu.Items.Add("切换最近窗口置顶", null, (_, _) => Dispatcher.BeginInvoke(ToggleLastEligibleWindow));
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("设置", null, (_, _) => Dispatcher.BeginInvoke(ShowSettingsWindow));
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.BeginInvoke(RequestExit));
-
-        _trayIcon = new Forms.NotifyIcon
+        if (_mainWindow is null || _applicationIcon is null || _applicationIcon.IsInvalid)
         {
-            Icon = _applicationIcon,
-            Text = "DeskPin - 窗口置顶助手",
-            ContextMenuStrip = menu,
-            Visible = true,
-        };
-        _trayIcon.DoubleClick += (_, _) => Dispatcher.BeginInvoke(ShowMainWindow);
+            return;
+        }
+
+        var handle = new WindowInteropHelper(_mainWindow).Handle;
+        _trayIcon = new TrayIconService(
+            handle,
+            _applicationIcon.DangerousGetHandle(),
+            () => Dispatcher.BeginInvoke(ShowMainWindow),
+            () => Dispatcher.BeginInvoke(ToggleLastEligibleWindow),
+            () => Dispatcher.BeginInvoke(ShowSettingsWindow),
+            () => Dispatcher.BeginInvoke(RequestExit));
     }
 
     private void ShowMainWindow()
@@ -258,12 +253,12 @@ public partial class App : System.Windows.Application
         ShowTrayMessage(
             result.Succeeded ? "DeskPin" : "操作失败",
             result.Message,
-            result.Succeeded ? Forms.ToolTipIcon.Info : Forms.ToolTipIcon.Warning);
+            result.Succeeded ? TrayNotificationKind.Info : TrayNotificationKind.Warning);
         _ = _mainWindow?.RefreshAsync();
     }
 
-    private void ShowTrayMessage(string title, string message, Forms.ToolTipIcon icon)
+    private void ShowTrayMessage(string title, string message, TrayNotificationKind icon)
     {
-        _trayIcon?.ShowBalloonTip(2500, title, message, icon);
+        _trayIcon?.ShowMessage(title, message, icon);
     }
 }

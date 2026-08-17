@@ -3,10 +3,16 @@
     <OutputName>DeskPin-x64</OutputName>
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
+    <Cultures>zh-CN</Cultures>
+    <DefaultCompressionLevel>high</DefaultCompressionLevel>
     <SuppressIces>ICE91</SuppressIces>
     <DeskPinPublishDir>$(MSBuildProjectDirectory)\..\..\artifacts\publish\</DeskPinPublishDir>
     <DefineConstants>DeskPinPublishDir=$(DeskPinPublishDir)</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
 
   <Target Name="PublishDeskPin" BeforeTargets="CoreCompile">
     <MSBuild Projects="$(MSBuildProjectDirectory)\..\..\src\DeskPin\DeskPin.csproj"

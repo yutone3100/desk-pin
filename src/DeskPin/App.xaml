@@ -30,6 +30,10 @@
         <SolidColorBrush x:Key="DangerSoftBrush" Color="#FFF0F0" />
         <SolidColorBrush x:Key="ChromeButtonHoverBrush" Color="#E9EDF5" />
         <SolidColorBrush x:Key="SelectionBrush" Color="#DDE8FF" />
+        <SolidColorBrush x:Key="ContextMenuBackgroundBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ContextMenuTextBrush" Color="#17213C" />
+        <SolidColorBrush x:Key="ContextMenuHoverBrush" Color="#EDF3FF" />
+        <SolidColorBrush x:Key="ContextMenuSeparatorBrush" Color="#DFE5EF" />
 
         <DropShadowEffect x:Key="CardShadowEffect"
                           BlurRadius="18"

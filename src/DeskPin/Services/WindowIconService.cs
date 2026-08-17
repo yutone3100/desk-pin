@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Drawing;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -58,8 +57,15 @@ internal static class WindowIconService
                 return null;
             }
 
-            using var icon = Icon.ExtractAssociatedIcon(path);
-            return icon is null ? null : CreateImage(icon.Handle);
+            if (!TryExtractAssociatedIcon(path, out var icon))
+            {
+                return null;
+            }
+
+            using (icon)
+            {
+                return CreateImage(icon.DangerousGetHandle());
+            }
         }
         catch (Exception exception) when (
             exception is ArgumentException or InvalidOperationException or
@@ -67,6 +73,42 @@ internal static class WindowIconService
         {
             return null;
         }
+    }
+
+    internal static bool TryExtractAssociatedIcon(string path, out SafeIconHandle icon)
+    {
+        icon = new SafeIconHandle(IntPtr.Zero);
+        var extracted = NativeMethods.ExtractIconEx(
+            path,
+            0,
+            out var largeIcon,
+            out var smallIcon,
+            1);
+        if (extracted == 0 || (largeIcon == IntPtr.Zero && smallIcon == IntPtr.Zero))
+        {
+            if (largeIcon != IntPtr.Zero)
+            {
+                NativeMethods.DestroyIcon(largeIcon);
+            }
+
+            if (smallIcon != IntPtr.Zero)
+            {
+                NativeMethods.DestroyIcon(smallIcon);
+            }
+
+            return false;
+        }
+
+        var selectedIcon = largeIcon != IntPtr.Zero ? largeIcon : smallIcon;
+        var unusedIcon = selectedIcon == largeIcon ? smallIcon : largeIcon;
+        if (unusedIcon != IntPtr.Zero)
+        {
+            NativeMethods.DestroyIcon(unusedIcon);
+        }
+
+        icon.Dispose();
+        icon = new SafeIconHandle(selectedIcon);
+        return true;
     }
 
     internal static ImageSource? CreateImage(IntPtr iconHandle)

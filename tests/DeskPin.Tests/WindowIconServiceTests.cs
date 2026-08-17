@@ -22,4 +22,18 @@ public sealed class WindowIconServiceTests
         Assert.Equal(48, source.Height);
         Assert.True(source.IsFrozen);
     }
+
+    [Fact]
+    public void ExtractedApplicationIconIsOwnedAndConvertible()
+    {
+        var appHost = Path.Combine(AppContext.BaseDirectory, "DeskPin.exe");
+        Assert.True(File.Exists(appHost));
+        Assert.True(WindowIconService.TryExtractAssociatedIcon(appHost, out var icon));
+
+        using (icon)
+        {
+            Assert.False(icon.IsInvalid);
+            Assert.NotNull(WindowIconService.CreateImage(icon.DangerousGetHandle()));
+        }
+    }
 }

@@ -16,6 +16,7 @@ public partial class SettingsWindow : Window
         Func<AppSettings, Task<SettingsApplyResult>> applySettings)
     {
         InitializeComponent();
+        WindowShadowService.Attach(this);
         _applySettings = applySettings;
         _preferredViewMode = settings.PreferredViewMode;
         _pendingHotkey = Clone(settings.Hotkey);
@@ -30,8 +31,6 @@ public partial class SettingsWindow : Window
         if (key == Key.Escape)
         {
             Keyboard.ClearFocus();
-            HotkeyHint.Text = "已取消录入";
-            HotkeyHint.Visibility = Visibility.Visible;
             return;
         }
 
@@ -50,8 +49,7 @@ public partial class SettingsWindow : Window
         }
         else if (!string.IsNullOrWhiteSpace(error))
         {
-            HotkeyHint.Text = error;
-            HotkeyHint.Visibility = Visibility.Visible;
+            ErrorText.Text = error;
         }
     }
 
@@ -96,8 +94,6 @@ public partial class SettingsWindow : Window
     private void UpdateHotkeyDisplay()
     {
         HotkeyBox.Text = _pendingHotkey?.DisplayText ?? "未设置";
-        HotkeyHint.Text = _pendingHotkey is null ? "默认未设置快捷键" : string.Empty;
-        HotkeyHint.Visibility = _pendingHotkey is null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static HotkeySetting? Clone(HotkeySetting? setting) => setting is null ? null : new HotkeySetting

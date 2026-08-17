@@ -46,6 +46,10 @@ public sealed class WindowSmokeTests
                 Assert.True(settingsWindow.ActualWidth > 0);
                 Assert.Equal(new Thickness(0), WindowChrome.GetWindowChrome(mainWindow)?.GlassFrameThickness);
                 Assert.Equal(new Thickness(0), WindowChrome.GetWindowChrome(settingsWindow)?.GlassFrameThickness);
+                Assert.False(mainWindow.AllowsTransparency);
+                Assert.False(settingsWindow.AllowsTransparency);
+                Assert.True(WindowShadowService.IsAttached(mainWindow));
+                Assert.True(WindowShadowService.IsAttached(settingsWindow));
                 var searchBox = Assert.IsType<WpfTextBox>(mainWindow.FindName("SearchBox"));
                 Assert.Equal(TextAlignment.Left, searchBox.TextAlignment);
                 var windowList = Assert.IsType<WpfListView>(mainWindow.FindName("WindowList"));
@@ -63,7 +67,9 @@ public sealed class WindowSmokeTests
                 Assert.All(menuItems, item =>
                 {
                     Assert.Equal(System.Windows.HorizontalAlignment.Center, item.HorizontalContentAlignment);
-                    Assert.Equal(Colors.White, Assert.IsType<SolidColorBrush>(item.Foreground).Color);
+                    Assert.Equal(
+                        Assert.IsType<SolidColorBrush>(application.Resources["ContextMenuTextBrush"]).Color,
+                        Assert.IsType<SolidColorBrush>(item.Foreground).Color);
                     Assert.NotNull(item.Template);
                 });
 

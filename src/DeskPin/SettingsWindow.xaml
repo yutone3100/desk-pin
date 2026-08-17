@@ -151,12 +151,6 @@
                                      PreviewKeyDown="HotkeyBox_PreviewKeyDown"
                                      AutomationProperties.Name="全局快捷键" />
                             <Button Grid.Column="1" Content="清除" Click="ClearHotkey_Click" />
-                            <TextBlock x:Name="HotkeyHint"
-                                       Grid.ColumnSpan="2"
-                                       Margin="2,47,0,0"
-                                       Foreground="{DynamicResource TextTertiaryBrush}"
-                                       FontSize="11"
-                                       Text="默认未设置快捷键" />
                         </Grid>
                     </Grid>
                 </Border>

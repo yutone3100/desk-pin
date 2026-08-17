@@ -39,6 +39,19 @@ public sealed class ThemeService : IDisposable
         var isDark = !highContrast && IsDarkMode();
         var resources = application.Resources;
 
+        ApplyPalette(resources, highContrast, isDark);
+
+        foreach (Window window in application.Windows)
+        {
+            ApplyTitleBar(window, isDark);
+            WindowShadowService.Refresh(window);
+        }
+    }
+
+    internal static void ApplyPalette(ResourceDictionary resources, bool highContrast, bool isDark)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+
         SetBrush(resources, "WindowBackgroundBrush", highContrast ? WpfSystemColors.WindowColor : isDark ? MediaColor.FromRgb(16, 18, 24) : MediaColor.FromRgb(238, 242, 247));
         SetBrush(resources, "ContentBackgroundBrush", highContrast ? WpfSystemColors.WindowColor : isDark ? MediaColor.FromRgb(22, 25, 33) : MediaColor.FromRgb(247, 249, 252));
         SetBrush(resources, "SidebarBrush", highContrast ? WpfSystemColors.WindowColor : isDark ? MediaColor.FromRgb(12, 16, 31) : MediaColor.FromRgb(21, 30, 63));
@@ -62,11 +75,10 @@ public sealed class ThemeService : IDisposable
         SetBrush(resources, "DangerSoftBrush", highContrast ? WpfSystemColors.HighlightColor : isDark ? MediaColor.FromRgb(78, 38, 42) : MediaColor.FromRgb(255, 240, 240));
         SetBrush(resources, "ChromeButtonHoverBrush", highContrast ? WpfSystemColors.HighlightColor : isDark ? MediaColor.FromRgb(44, 49, 62) : MediaColor.FromRgb(233, 237, 245));
         SetBrush(resources, "SelectionBrush", highContrast ? WpfSystemColors.HighlightColor : isDark ? MediaColor.FromRgb(45, 68, 112) : MediaColor.FromRgb(221, 232, 255));
-
-        foreach (Window window in application.Windows)
-        {
-            ApplyTitleBar(window, isDark);
-        }
+        SetBrush(resources, "ContextMenuBackgroundBrush", highContrast ? WpfSystemColors.MenuColor : isDark ? MediaColor.FromRgb(21, 26, 42) : System.Windows.Media.Colors.White);
+        SetBrush(resources, "ContextMenuTextBrush", highContrast ? WpfSystemColors.MenuTextColor : isDark ? MediaColor.FromRgb(247, 249, 255) : MediaColor.FromRgb(23, 33, 60));
+        SetBrush(resources, "ContextMenuHoverBrush", highContrast ? WpfSystemColors.HighlightColor : isDark ? MediaColor.FromRgb(36, 45, 72) : MediaColor.FromRgb(237, 243, 255));
+        SetBrush(resources, "ContextMenuSeparatorBrush", highContrast ? WpfSystemColors.MenuTextColor : isDark ? MediaColor.FromRgb(61, 70, 91) : MediaColor.FromRgb(223, 229, 239));
     }
 
     public void ApplyTitleBar(Window window, bool? darkOverride = null)
