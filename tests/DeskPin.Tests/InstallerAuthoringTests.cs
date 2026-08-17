@@ -4,6 +4,9 @@ namespace DeskPin.Tests;
 
 public sealed class InstallerAuthoringTests
 {
+    private const string ReleaseVersion = "1.1.0";
+    private const string AssemblyReleaseVersion = "1.1.0.0";
+
     [Fact]
     public void InstallerProvidesPerUserLocalizedInstallDirectoryUi()
     {
@@ -70,6 +73,30 @@ public sealed class InstallerAuthoringTests
             return source.Contains("System.Windows.Forms", StringComparison.Ordinal) ||
                    source.Contains("System.Drawing", StringComparison.Ordinal);
         });
+    }
+
+    [Fact]
+    public void ApplicationManifestAndInstallerUseMatchingReleaseVersion()
+    {
+        var root = FindRepositoryRoot();
+        var project = XDocument.Load(Path.Combine(root, "src", "DeskPin", "DeskPin.csproj"));
+        var manifest = XDocument.Load(Path.Combine(root, "src", "DeskPin", "app.manifest"));
+        var package = XDocument.Load(Path.Combine(root, "installer", "DeskPin.Installer", "Package.wxs"));
+        XNamespace assembly = "urn:schemas-microsoft-com:asm.v1";
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+
+        Assert.Equal(ReleaseVersion, Assert.Single(project.Descendants("Version")).Value);
+        Assert.Equal(AssemblyReleaseVersion, Assert.Single(project.Descendants("AssemblyVersion")).Value);
+        Assert.Equal(AssemblyReleaseVersion, Assert.Single(project.Descendants("FileVersion")).Value);
+        Assert.Equal(
+            AssemblyReleaseVersion,
+            Assert.Single(manifest.Descendants(assembly + "assemblyIdentity")).Attribute("version")?.Value);
+
+        var packageElement = Assert.Single(package.Descendants(wix + "Package"));
+        Assert.Equal(ReleaseVersion, packageElement.Attribute("Version")?.Value);
+        Assert.Equal(
+            "8E4278A5-5014-49CF-9E85-2C3A38B01D77",
+            packageElement.Attribute("UpgradeCode")?.Value);
     }
 
     private static string FindRepositoryRoot()

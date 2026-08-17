@@ -5,6 +5,9 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>DeskPin</AssemblyName>
     <RootNamespace>DeskPin</RootNamespace>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\DeskPin.ico</ApplicationIcon>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
