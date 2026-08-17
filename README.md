@@ -33,16 +33,26 @@ WiX 5.0.2 通过项目 SDK 自动还原，不要求全局安装，也不要求�
 installer\DeskPin.Installer\bin\x64\Release\DeskPin-x64.msi
 ```
 
-正式发布启用自包含单文件压缩，仅携带简体中文卫星资源，并使用原生 Win32 托盘实现以避免引入 WinForms 运行时。构建脚本会显示 EXE/MSI 的实际字节数，并在 EXE 超过 60 MiB 或 MSI 超过 55 MiB 时失败。使用 .NET SDK 10.0.301 的当前验证结果为：EXE 58.79 MiB，MSI 52.78 MiB。
+正式发布启用自包含单文件压缩，仅携带简体中文卫星资源，并使用原生 Win32 托盘实现以避免引入 WinForms 运行时。构建脚本会显示 EXE、发布目录和 MSI 的实际字节数，并在 EXE或发布目录超过 60 MiB、MSI 超过 55 MiB 时失败。使用 .NET SDK 10.0.301 的 v1.1.0 验证结果为：EXE和发布目录 58.80 MiB，MSI 52.79 MiB。
 
 MSI 和应用未进行代码签名，公开分发前应使用可信证书签名。
 
 仓库也提供等价的 `build.ps1`；如果系统禁止运行本地 PowerShell 脚本，请直接使用上面的 `build.cmd`，无需修改执行策略。
+
+## 托盘内存测量
+
+完成 Release 构建后，可运行十分钟托盘空闲稳定性测试：
+
+```powershell
+.\measure-memory.ps1 -DurationSeconds 600 -WarmupSeconds 60
+```
+
+脚本记录 Private Working Set、总 Working Set、Private Bytes、句柄、线程和 CPU，并检查 80 MiB 空闲 Private Working Set 门槛以及十分钟内的资源增长。
 
 ## 行为边界
 
 - 默认没有全局快捷键，也不会开机启动；两项均可在设置中启用。
 - 点击主窗口关闭按钮只会隐藏到系统托盘。
 - 从托盘退出时，DeskPin 会取消本次运行期间由它新增的置顶状态。
-- 普通权限进程可能无法控制以管理员身份运行的窗口，DeskPin 会显示明确提示但不会自动提权。
+- 普通权限进程无法控制管理员窗口时，DeskPin 会先询问用户；只有用户确认后才通过 UAC 按需重启为管理员实例，下次正常启动仍使用普通权限。
 - 不保存自动置顶规则，窗口或 DeskPin 重启后不会自动恢复置顶状态。
